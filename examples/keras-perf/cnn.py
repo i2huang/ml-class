@@ -14,7 +14,7 @@ config.dense_layer_size = 128
 config.img_width = 32
 config.img_height = 32
 config.channels = 3
-config.epochs = 4
+config.epochs = 8
 
 (X_train, y_train), (X_test, y_test) = tf.keras.datasets.cifar10.load_data()
 
@@ -37,16 +37,21 @@ labels = [str(i) for i in range(10)]
 
 # build model
 model = tf.keras.Sequential()
-model.add(tf.keras.layers.Conv2D(32,
-                                 (config.first_layer_conv_width,
-                                  config.first_layer_conv_height),
-                                 input_shape=(config.img_width,
-                                              config.img_height, config.channels),
-                                 activation='relu'))
-model.add(tf.keras.layers.MaxPooling2D(pool_size=(2, 2)))
-model.add(tf.keras.layers.Flatten())
-model.add(tf.keras.layers.Dense(config.dense_layer_size, activation='relu'))
-model.add(tf.keras.layers.Dense(num_classes, activation='softmax'))
+inp = tf.keras.Input((config.img_width,config.img_height, config.channels))
+x = tf.keras.layers.Conv2D(32,(config.first_layer_conv_width,config.first_layer_conv_height),activation='relu')(inp)
+x = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(x)
+r1 = tf.keras.layers.Conv2D(64,(3,3),activation='relu')(x)
+x = tf.keras.layers.Conv2D(256,(1,1),activation='relu')(r1)
+x = tf.keras.layers.Conv2D(256,(3,3),padding='same',activation='relu')(x)
+r2 = tf.keras.layers.Conv2D(64,(1,1),activation='relu')(x)
+x = tf.keras.layers.Add()([r1,r2])
+x = tf.keras.layers.MaxPooling2D(pool_size=(2, 2))(x)
+x = tf.keras.layers.Flatten()(x)
+x = tf.keras.layers.Dense(config.dense_layer_size, activation='relu')(x)
+y = tf.keras.layers.Dense(config.dense_layer_size, activation='relu')(x)
+x = tf.keras.layers.Add()([x,y])
+x = tf.keras.layers.Dense(num_classes, activation='softmax')(x)
+model = tf.keras.Model(inp, x)
 
 # optional profiling setup...
 # > sudo pip install tensorflow_gpu==1.14.0
